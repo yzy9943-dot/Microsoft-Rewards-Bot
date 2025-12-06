@@ -35,9 +35,8 @@ export class Workers {
 
     // Daily Set
     async doDailySet(page: Page, data: DashboardData) {
-        const todayData = data.dailySetPromotions[this.bot.utils.getFormattedDate()]
-
         const today = this.bot.utils.getFormattedDate()
+        const todayData = data.dailySetPromotions[today]
         const activitiesUncompleted = (todayData?.filter(x => !x.complete && x.pointProgressMax > 0) ?? [])
             .filter(x => {
                 if (this.bot.config.jobState?.enabled === false) return true
@@ -46,7 +45,7 @@ export class Workers {
             })
 
         if (!activitiesUncompleted.length) {
-            this.bot.log(this.bot.isMobile, 'DAILY-SET', 'All Daily Set" items have already been completed')
+            this.bot.log(this.bot.isMobile, 'DAILY-SET', 'All "Daily Set" items have already been completed')
             return
         }
 
@@ -209,7 +208,8 @@ export class Workers {
 
                 await this.applyThrottle(throttle, ACTIVITY_DELAYS.ACTIVITY_SPACING_MIN, ACTIVITY_DELAYS.ACTIVITY_SPACING_MAX)
             } catch (error) {
-                this.bot.log(this.bot.isMobile, 'ACTIVITY', 'An error occurred:' + error, 'error')
+                const message = error instanceof Error ? error.message : String(error)
+                this.bot.log(this.bot.isMobile, 'ACTIVITY', `Activity "${activity.title}" failed: ${message}`, 'error')
                 throttle.record(false)
             }
         }
