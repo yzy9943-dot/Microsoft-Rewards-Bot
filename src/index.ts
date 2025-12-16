@@ -10,6 +10,7 @@ import { createInterface } from 'readline'
 import BrowserFunc from './browser/BrowserFunc'
 import BrowserUtil from './browser/BrowserUtil'
 import Humanizer from './util/browser/Humanizer'
+import { getMemoryMonitor, stopMemoryMonitor } from './util/core/MemoryMonitor'
 import { formatDetailedError, normalizeRecoveryEmail, shortErrorMessage, Util } from './util/core/Utils'
 import Axios from './util/network/Axios'
 import { QueryDiversityEngine } from './util/network/QueryDiversityEngine'
@@ -1059,18 +1060,21 @@ async function main(): Promise<void> {
             log('main', 'FATAL', `UncaughtException: ${err.message}${err.stack ? `\nStack: ${err.stack.split('\n').slice(0, 3).join(' | ')}` : ''}`, 'error')
             scheduler?.stop() // Stop scheduler before exit
             stopWebhookCleanup()
+            stopMemoryMonitor() // Stop memory monitoring before exit
             gracefulExit(1)
         })
         process.on('SIGTERM', () => {
             log('main', 'SHUTDOWN', 'Received SIGTERM, shutting down gracefully...', 'log')
             scheduler?.stop() // Stop scheduler before exit
             stopWebhookCleanup()
+            stopMemoryMonitor() // Stop memory monitoring before exit
             gracefulExit(0)
         })
         process.on('SIGINT', () => {
             log('main', 'SHUTDOWN', 'Received SIGINT (Ctrl+C), shutting down gracefully...', 'log')
             scheduler?.stop() // Stop scheduler before exit
             stopWebhookCleanup()
+            stopMemoryMonitor() // Stop memory monitoring before exit
             gracefulExit(0)
         })
     }
@@ -1177,6 +1181,15 @@ async function main(): Promise<void> {
                 // IMPROVED: Start scheduler FIRST to show schedule info immediately, THEN run tasks
                 // This gives users instant confirmation of the cron schedule without waiting for long execution
                 log('main', 'MAIN', 'Scheduling enabled - activating scheduler, then executing immediate run', 'log', 'cyan')
+
+                // Start memory monitoring for long-running scheduled sessions
+                const memoryMonitor = getMemoryMonitor({
+                    warningThresholdMB: 500,
+                    criticalThresholdMB: 1024,
+                    leakRateMBPerHour: 50,
+                    samplingIntervalMs: 60000 // Sample every minute
+                })
+                memoryMonitor.start()
 
                 // Initialize and start scheduler first
                 scheduler = new InternalScheduler(config, async () => {

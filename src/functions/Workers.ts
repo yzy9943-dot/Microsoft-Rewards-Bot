@@ -8,6 +8,7 @@ import { waitForElementSmart, waitForNetworkIdle } from '../util/browser/SmartWa
 import { Retry } from '../util/core/Retry'
 import { AdaptiveThrottler } from '../util/notifications/AdaptiveThrottler'
 import { logError } from '../util/notifications/Logger'
+import { getActivityStatsTracker } from '../util/state/ActivityStatsTracker'
 import JobState from '../util/state/JobState'
 
 // Selector patterns (extracted to avoid magic strings)
@@ -267,7 +268,11 @@ export class Workers {
     }
 
     private async executeActivity(page: Page, activity: PromotionalItem | MorePromotion, selector: string, throttle: AdaptiveThrottler, retry: Retry): Promise<void> {
-        this.bot.log(this.bot.isMobile, 'ACTIVITY', `Found activity type: "${this.bot.activities.getTypeLabel(activity)}" title: "${activity.title}"`)
+        const activityType = this.bot.activities.getTypeLabel(activity)
+        const statsTracker = getActivityStatsTracker()
+        const startTime = statsTracker.startActivity(activityType)
+
+        this.bot.log(this.bot.isMobile, 'ACTIVITY', `Found activity type: "${activityType}" title: "${activity.title}"`)
 
         // IMPROVED: Fast-fail for unavailable activities (1s+3s instead of 2s+5s)
         const elementResult = await waitForElementSmart(page, selector, {
@@ -279,6 +284,7 @@ export class Workers {
 
         if (!elementResult.found) {
             this.bot.log(this.bot.isMobile, 'ACTIVITY', `[SKIP] Activity not available: "${activity.title}" (already completed or not offered today)`)
+            statsTracker.recordSuccess(activityType, startTime) // Count as success (nothing to do)
             return // Skip this activity gracefully
         }
 
@@ -294,6 +300,7 @@ export class Workers {
         } catch (clickError) {
             const errMsg = clickError instanceof Error ? clickError.message : String(clickError)
             this.bot.log(this.bot.isMobile, 'ACTIVITY', `Failed to click activity: ${errMsg}`, 'error')
+            statsTracker.recordFailure(activityType, startTime, clickError instanceof Error ? clickError : new Error(errMsg))
             throw new Error(`Activity click failed: ${errMsg}`)
         }
 
@@ -302,24 +309,31 @@ export class Workers {
         // Execute activity with timeout protection using Promise.race
         const timeoutMs = this.bot.utils.stringToMs(this.bot.config?.globalTimeout ?? '30s') * 2
 
-        await retry.run(async () => {
-            const activityPromise = this.bot.activities.run(page, activity)
-            const timeoutPromise = new Promise<never>((_, reject) => {
-                const timer = setTimeout(() => {
-                    reject(new Error(`Activity execution timeout after ${timeoutMs}ms`))
-                }, timeoutMs)
-                // Clean up timer if activity completes first
-                activityPromise.finally(() => clearTimeout(timer))
-            })
+        try {
+            await retry.run(async () => {
+                const activityPromise = this.bot.activities.run(page, activity)
+                const timeoutPromise = new Promise<never>((_, reject) => {
+                    const timer = setTimeout(() => {
+                        reject(new Error(`Activity execution timeout after ${timeoutMs}ms`))
+                    }, timeoutMs)
+                    // Clean up timer if activity completes first
+                    activityPromise.finally(() => clearTimeout(timer))
+                })
 
-            try {
-                await Promise.race([activityPromise, timeoutPromise])
-                throttle.record(true)
-            } catch (e) {
-                throttle.record(false)
-                throw e
-            }
-        }, () => true)
+                try {
+                    await Promise.race([activityPromise, timeoutPromise])
+                    throttle.record(true)
+                } catch (e) {
+                    throttle.record(false)
+                    throw e
+                }
+            }, () => true)
+
+            statsTracker.recordSuccess(activityType, startTime)
+        } catch (activityError) {
+            statsTracker.recordFailure(activityType, startTime, activityError instanceof Error ? activityError : undefined)
+            throw activityError
+        }
 
         await this.bot.browser.utils.humanizePage(page)
     }

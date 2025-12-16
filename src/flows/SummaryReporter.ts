@@ -13,6 +13,7 @@ import type { Config } from '../interface/Config'
 import { ConclusionWebhook } from '../util/notifications/ConclusionWebhook'
 import { log } from '../util/notifications/Logger'
 import { Ntfy } from '../util/notifications/Ntfy'
+import { getActivityStatsTracker, resetActivityStatsTracker } from '../util/state/ActivityStatsTracker'
 import { JobState } from '../util/state/JobState'
 
 export interface AccountResult {
@@ -258,12 +259,52 @@ export class SummaryReporter {
 
         log('main', 'SUMMARY', '═'.repeat(80))
 
+        // Log activity statistics
+        this.logActivityStats()
+
         // Send notifications
         await Promise.all([
             this.sendWebhookSummary(summary),
             this.sendPushNotification(summary),
             this.updateJobState(summary)
         ])
+
+        // Reset activity stats for next run
+        resetActivityStatsTracker()
+    }
+
+    /**
+     * Log activity success/failure statistics
+     */
+    private logActivityStats(): void {
+        const tracker = getActivityStatsTracker()
+        const summary = tracker.getSummary()
+
+        if (summary.totalAttempts === 0) {
+            return
+        }
+
+        log('main', 'SUMMARY', '─'.repeat(80))
+        log('main', 'SUMMARY', '📈 Activity Statistics:')
+        log('main', 'SUMMARY', `   Total: ${summary.totalSuccesses}/${summary.totalAttempts} succeeded (${(summary.overallSuccessRate * 100).toFixed(1)}%)`)
+
+        // Show per-activity breakdown if there are multiple activity types
+        if (summary.byActivity.length > 1) {
+            for (const activity of summary.byActivity) {
+                const rate = (activity.successRate * 100).toFixed(0)
+                const avgTime = (activity.avgDurationMs / 1000).toFixed(1)
+                log('main', 'SUMMARY', `   ${activity.type}: ${activity.successes}/${activity.attempts} (${rate}%) avg ${avgTime}s`)
+            }
+        }
+
+        // Warn about problematic activities
+        const problematic = tracker.getProblematicActivities()
+        if (problematic.length > 0) {
+            log('main', 'SUMMARY', '⚠️ High Failure Activities:', 'warn')
+            for (const p of problematic) {
+                log('main', 'SUMMARY', `   ${p.type}: ${(p.failureRate * 100).toFixed(0)}% failure rate (${p.attempts} attempts)`, 'warn')
+            }
+        }
     }
 
     /**

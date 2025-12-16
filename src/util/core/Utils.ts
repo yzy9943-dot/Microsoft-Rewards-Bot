@@ -241,7 +241,7 @@ export function normalizeRecoveryEmail(recoveryEmail: unknown): string | undefin
 export function replaceUntilStable(
     input: string,
     pattern: RegExp,
-    replacement: string | ((substring: string, ...args: any[]) => string),
+    replacement: string | ((substring: string, ...args: string[]) => string),
     maxPasses: number = 1000
 ): string {
     if (!(pattern instanceof RegExp)) {
@@ -254,7 +254,11 @@ export function replaceUntilStable(
 
     let previous = input
     for (let i = 0; i < maxPasses; i++) {
-        const next = previous.replace(globalPattern, replacement as any)
+        // Type assertion needed for union type compatibility with String.prototype.replace
+        const next = previous.replace(
+            globalPattern,
+            replacement as (substring: string, ...args: string[]) => string
+        )
         if (next === previous) return next
         previous = next
     }
