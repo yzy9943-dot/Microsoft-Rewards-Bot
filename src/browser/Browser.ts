@@ -257,10 +257,161 @@ class Browser {
                                         description: 'Portable Document Format',
                                         filename: 'internal-pdf-viewer',
                                         length: 2
+                                    },
+                                    {
+                                        name: 'Chromium PDF Viewer',
+                                        description: 'Portable Document Format',
+                                        filename: 'internal-pdf-viewer',
+                                        length: 2
                                     }
                                 ]
                             })
                         } catch { /* Plugins may be frozen */ }
+
+                        // ═══════════════════════════════════════════════════════════════
+                        // ANTI-DETECTION LAYER 5: WebRTC Leak Prevention
+                        // ═══════════════════════════════════════════════════════════════
+
+                        // CRITICAL: Prevent WebRTC from leaking real IP address
+                        try {
+                            // Override RTCPeerConnection to prevent IP leaks
+                            const originalRTCPeerConnection = window.RTCPeerConnection
+                            // @ts-ignore
+                            window.RTCPeerConnection = function (config?: RTCConfiguration) {
+                                // Force STUN servers through proxy or disable
+                                const modifiedConfig: RTCConfiguration = {
+                                    ...config,
+                                    iceServers: [] // Disable ICE to prevent IP leak
+                                }
+                                return new originalRTCPeerConnection(modifiedConfig)
+                            }
+                            // @ts-ignore
+                            window.RTCPeerConnection.prototype = originalRTCPeerConnection.prototype
+                        } catch { /* WebRTC override may fail */ }
+
+                        // ═══════════════════════════════════════════════════════════════
+                        // ANTI-DETECTION LAYER 6: Battery API Spoofing
+                        // ═══════════════════════════════════════════════════════════════
+
+                        // Headless browsers may have unusual battery states
+                        try {
+                            // @ts-ignore
+                            if (navigator.getBattery) {
+                                // @ts-ignore
+                                navigator.getBattery = () => Promise.resolve({
+                                    charging: true,
+                                    chargingTime: 0,
+                                    dischargingTime: Infinity,
+                                    level: 1,
+                                    addEventListener: () => { },
+                                    removeEventListener: () => { },
+                                    dispatchEvent: () => true
+                                })
+                            }
+                        } catch { /* Battery API override may fail */ }
+
+                        // ═══════════════════════════════════════════════════════════════
+                        // ANTI-DETECTION LAYER 7: Hardware Concurrency Consistency
+                        // ═══════════════════════════════════════════════════════════════
+
+                        // Ensure hardware concurrency looks realistic
+                        try {
+                            const realCores = navigator.hardwareConcurrency || 4
+                            // Round to common values: 2, 4, 6, 8, 12, 16
+                            const commonCores = [2, 4, 6, 8, 12, 16]
+                            const normalizedCores = commonCores.reduce((prev, curr) =>
+                                Math.abs(curr - realCores) < Math.abs(prev - realCores) ? curr : prev
+                            )
+                            Object.defineProperty(navigator, 'hardwareConcurrency', {
+                                get: () => normalizedCores,
+                                configurable: true
+                            })
+                        } catch { /* Hardware concurrency override may fail */ }
+
+                        // ═══════════════════════════════════════════════════════════════
+                        // ANTI-DETECTION LAYER 8: Device Memory Consistency
+                        // ═══════════════════════════════════════════════════════════════
+
+                        try {
+                            // @ts-ignore
+                            const realMemory = navigator.deviceMemory || 8
+                            // Round to common values: 2, 4, 8, 16
+                            const commonMemory = [2, 4, 8, 16]
+                            const normalizedMemory = commonMemory.reduce((prev, curr) =>
+                                Math.abs(curr - realMemory) < Math.abs(prev - realMemory) ? curr : prev
+                            )
+                            Object.defineProperty(navigator, 'deviceMemory', {
+                                get: () => normalizedMemory,
+                                configurable: true
+                            })
+                        } catch { /* Device memory override may fail */ }
+
+                        // ═══════════════════════════════════════════════════════════════
+                        // ANTI-DETECTION LAYER 9: Audio Fingerprint Protection
+                        // ═══════════════════════════════════════════════════════════════
+
+                        try {
+                            const originalCreateOscillator = AudioContext.prototype.createOscillator
+                            const originalCreateDynamicsCompressor = AudioContext.prototype.createDynamicsCompressor
+
+                            // Add slight randomization to audio context to prevent fingerprinting
+                            AudioContext.prototype.createOscillator = function () {
+                                const oscillator = originalCreateOscillator.apply(this)
+                                const originalGetFloatFrequencyData = AnalyserNode.prototype.getFloatFrequencyData
+                                AnalyserNode.prototype.getFloatFrequencyData = function (array) {
+                                    originalGetFloatFrequencyData.apply(this, [array])
+                                    // Add imperceptible noise
+                                    for (let i = 0; i < array.length; i++) {
+                                        array[i] = array[i]! + (Math.random() * 0.0001)
+                                    }
+                                }
+                                return oscillator
+                            }
+
+                            AudioContext.prototype.createDynamicsCompressor = function () {
+                                const compressor = originalCreateDynamicsCompressor.apply(this)
+                                // Slightly randomize default values
+                                try {
+                                    compressor.threshold.value = -24 + (Math.random() * 0.001)
+                                    compressor.knee.value = 30 + (Math.random() * 0.001)
+                                } catch { /* May be read-only */ }
+                                return compressor
+                            }
+                        } catch { /* Audio API override may fail */ }
+
+                        // ═══════════════════════════════════════════════════════════════
+                        // ANTI-DETECTION LAYER 10: Timezone & Locale Consistency
+                        // ═══════════════════════════════════════════════════════════════
+
+                        try {
+                            // Ensure Date.prototype.getTimezoneOffset is consistent
+                            const originalGetTimezoneOffset = Date.prototype.getTimezoneOffset
+                            const consistentOffset = originalGetTimezoneOffset.call(new Date())
+                            Date.prototype.getTimezoneOffset = function () {
+                                return consistentOffset
+                            }
+                        } catch { /* Timezone override may fail */ }
+
+                        // ═══════════════════════════════════════════════════════════════
+                        // ANTI-DETECTION LAYER 11: Connection Info Spoofing
+                        // ═══════════════════════════════════════════════════════════════
+
+                        try {
+                            // @ts-ignore
+                            if (navigator.connection) {
+                                Object.defineProperty(navigator, 'connection', {
+                                    get: () => ({
+                                        effectiveType: '4g',
+                                        rtt: 50,
+                                        downlink: 10,
+                                        saveData: false,
+                                        addEventListener: () => { },
+                                        removeEventListener: () => { }
+                                    }),
+                                    configurable: true
+                                })
+                            }
+                        } catch { /* Connection API override may fail */ }
 
                         // ═══════════════════════════════════════════════════════════════
                         // Standard styling (non-detection related)

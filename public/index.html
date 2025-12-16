@@ -1,47 +1,229 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Microsoft Rewards Bot Dashboard</title>
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
+
 <body>
   <div class="container">
+    <!-- Header -->
     <div class="header">
-      <div><h1>🎯 Microsoft Rewards Bot</h1></div>
-      <div class="status">
-        <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
-        <div id="statusBadge" class="status-badge status-stopped">STOPPED</div>
+      <div class="header-left">
+        <h1>🎯 Microsoft Rewards Bot</h1>
+        <span class="version" id="version">v3.5.0</span>
+      </div>
+      <div class="header-right">
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+          <i class="fas fa-moon"></i>
+        </button>
+        <div id="statusBadge" class="status-badge status-stopped">
+          <i class="fas fa-circle"></i>
+          <span>STOPPED</span>
+        </div>
       </div>
     </div>
+
+    <!-- Stats Grid -->
     <div class="stats-grid">
-      <div class="stat-card"><div class="label">Total Accounts</div><div class="value" id="totalAccounts">0</div></div>
-      <div class="stat-card"><div class="label">Total Points</div><div class="value" id="totalPoints">0</div></div>
-      <div class="stat-card"><div class="label">Completed</div><div class="value" id="completed">0</div></div>
-      <div class="stat-card"><div class="label">Errors</div><div class="value" id="errors">0</div></div>
-    </div>
-    <div class="card">
-      <div class="card-header"><h2 class="card-title">🎮 Control Panel</h2></div>
-      <div class="btn-group">
-        <button class="btn btn-success" onclick="startBot()" id="btnStart"><i class="fas fa-play"></i> Start</button>
-        <button class="btn btn-danger" onclick="stopBot()" id="btnStop" disabled><i class="fas fa-stop"></i> Stop</button>
-        <button class="btn btn-primary" onclick="restartBot()"><i class="fas fa-redo"></i> Restart</button>
-        <button class="btn btn-primary" onclick="refreshData()"><i class="fas fa-sync-alt"></i> Refresh</button>
-        <button class="btn btn-primary" onclick="clearLogs()"><i class="fas fa-trash"></i> Clear Logs</button>
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-users"></i></div>
+        <div class="stat-content">
+          <div class="stat-label">Total Accounts</div>
+          <div class="stat-value" id="totalAccounts">0</div>
+        </div>
+      </div>
+      <div class="stat-card stat-points">
+        <div class="stat-icon"><i class="fas fa-coins"></i></div>
+        <div class="stat-content">
+          <div class="stat-label">Total Points</div>
+          <div class="stat-value" id="totalPoints">0</div>
+        </div>
+      </div>
+      <div class="stat-card stat-success">
+        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-content">
+          <div class="stat-label">Completed Today</div>
+          <div class="stat-value" id="completed">0</div>
+        </div>
+      </div>
+      <div class="stat-card stat-error">
+        <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="stat-content">
+          <div class="stat-label">Errors</div>
+          <div class="stat-value" id="errors">0</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+        <div class="stat-content">
+          <div class="stat-label">Uptime</div>
+          <div class="stat-value" id="uptime">00:00:00</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon"><i class="fas fa-memory"></i></div>
+        <div class="stat-content">
+          <div class="stat-label">Memory</div>
+          <div class="stat-value" id="memory">0 MB</div>
+        </div>
       </div>
     </div>
-    <div class="card">
-      <div class="card-header"><h2 class="card-title">👥 Accounts</h2></div>
-      <div id="accountsList"></div>
+
+    <!-- Main Grid -->
+    <div class="main-grid">
+      <!-- Left Column -->
+      <div class="left-column">
+        <!-- Control Panel -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-gamepad"></i> Control Panel</h2>
+            <div class="card-actions">
+              <button class="btn btn-sm btn-secondary" onclick="refreshData()" title="Refresh">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+            </div>
+          </div>
+          <div class="control-grid">
+            <button class="control-btn control-start" onclick="startBot()" id="btnStart">
+              <i class="fas fa-play"></i>
+              <span>Start Bot</span>
+            </button>
+            <button class="control-btn control-stop" onclick="stopBot()" id="btnStop" disabled>
+              <i class="fas fa-stop"></i>
+              <span>Stop Bot</span>
+            </button>
+            <button class="control-btn control-restart" onclick="restartBot()">
+              <i class="fas fa-redo"></i>
+              <span>Restart</span>
+            </button>
+            <button class="control-btn control-reset" onclick="resetJobState()">
+              <i class="fas fa-eraser"></i>
+              <span>Reset State</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Accounts Card -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-users"></i> Accounts</h2>
+            <span class="badge" id="accountsBadge">0</span>
+          </div>
+          <div id="accountsList" class="accounts-list"></div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-bolt"></i> Quick Actions</h2>
+          </div>
+          <div class="quick-actions">
+            <button class="action-btn" onclick="runSingleAccount()">
+              <i class="fas fa-user"></i>
+              <span>Run Single</span>
+            </button>
+            <button class="action-btn" onclick="exportLogs()">
+              <i class="fas fa-download"></i>
+              <span>Export Logs</span>
+            </button>
+            <button class="action-btn" onclick="openConfig()">
+              <i class="fas fa-cog"></i>
+              <span>Config</span>
+            </button>
+            <button class="action-btn" onclick="viewHistory()">
+              <i class="fas fa-history"></i>
+              <span>History</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="right-column">
+        <!-- Charts Card -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-chart-line"></i> Points History</h2>
+            <div class="chart-period">
+              <button class="period-btn active" data-period="7d" onclick="setChartPeriod('7d', this)">7D</button>
+              <button class="period-btn" data-period="30d" onclick="setChartPeriod('30d', this)">30D</button>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="pointsChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Activity Chart -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-tasks"></i> Activity Breakdown</h2>
+          </div>
+          <div class="chart-container chart-small">
+            <canvas id="activityChart"></canvas>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- Logs Card (Full Width) -->
     <div class="card">
-      <div class="card-header"><h2 class="card-title">📝 Live Logs</h2></div>
+      <div class="card-header">
+        <h2 class="card-title"><i class="fas fa-terminal"></i> Live Logs</h2>
+        <div class="card-actions">
+          <select id="logFilter" class="log-filter" onchange="filterLogs()">
+            <option value="all">All Levels</option>
+            <option value="error">Errors Only</option>
+            <option value="warn">Warnings</option>
+            <option value="log">Info</option>
+          </select>
+          <button class="btn btn-sm btn-secondary" onclick="toggleAutoScroll()" id="btnAutoScroll" title="Auto-scroll">
+            <i class="fas fa-arrow-down"></i>
+          </button>
+          <button class="btn btn-sm btn-danger" onclick="clearLogs()" title="Clear logs">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
       <div class="logs-container" id="logsContainer"></div>
     </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <span>Microsoft Rewards Bot Dashboard</span>
+      <span class="separator">•</span>
+      <a href="https://github.com/LightZirconite/Microsoft-Rewards-Bot" target="_blank">
+        <i class="fab fa-github"></i> GitHub
+      </a>
+      <span class="separator">•</span>
+      <span id="connectionStatus" class="connection-status disconnected">
+        <i class="fas fa-circle"></i> Connecting...
+      </span>
+    </div>
   </div>
+
+  <!-- Toast Container -->
   <div id="toastContainer"></div>
+
+  <!-- Modal -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">Modal Title</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer" id="modalFooter"></div>
+    </div>
+  </div>
+
   <script src="/app.js"></script>
 </body>
+
 </html>

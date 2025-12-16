@@ -259,6 +259,78 @@ apiRouter.post('/account/:email/reset', (req: Request, res: Response): void => {
   }
 })
 
+// POST /api/reset-state - Reset all job states for today
+apiRouter.post('/reset-state', (_req: Request, res: Response): void => {
+  try {
+    const jobStatePath = path.join(process.cwd(), 'sessions', 'job-state')
+
+    if (!fs.existsSync(jobStatePath)) {
+      res.json({ success: true, message: 'No job state to reset' })
+      return
+    }
+
+    const today = new Date().toISOString().slice(0, 10)
+    let resetCount = 0
+
+    // Read all job state files and reset today's entries
+    const files = fs.readdirSync(jobStatePath).filter(f => f.endsWith('.json'))
+
+    for (const file of files) {
+      try {
+        const filePath = path.join(jobStatePath, file)
+        const content = JSON.parse(fs.readFileSync(filePath, 'utf-8'))
+
+        // Reset today's completed activities
+        if (content[today]) {
+          delete content[today]
+          fs.writeFileSync(filePath, JSON.stringify(content, null, 2), 'utf-8')
+          resetCount++
+        }
+      } catch {
+        // Continue processing other files if one fails
+        continue
+      }
+    }
+
+    // Reset account statuses in dashboard state
+    const accounts = dashboardState.getAccounts()
+    for (const account of accounts) {
+      dashboardState.updateAccount(account.email, {
+        status: 'idle',
+        errors: []
+      })
+    }
+
+    res.json({
+      success: true,
+      message: `Reset job state for ${resetCount} account(s)`,
+      resetCount
+    })
+  } catch (error) {
+    res.status(500).json({ error: getErr(error) })
+  }
+})
+
+// GET /api/memory - Get current memory usage
+apiRouter.get('/memory', (_req: Request, res: Response) => {
+  try {
+    const memUsage = process.memoryUsage()
+    res.json({
+      heapUsed: memUsage.heapUsed,
+      heapTotal: memUsage.heapTotal,
+      rss: memUsage.rss,
+      external: memUsage.external,
+      formatted: {
+        heapUsed: `${(memUsage.heapUsed / 1024 / 1024).toFixed(1)} MB`,
+        heapTotal: `${(memUsage.heapTotal / 1024 / 1024).toFixed(1)} MB`,
+        rss: `${(memUsage.rss / 1024 / 1024).toFixed(1)} MB`
+      }
+    })
+  } catch (error) {
+    res.status(500).json({ error: getErr(error) })
+  }
+})
+
 // Helper to mask sensitive URLs
 function maskUrl(url: string): string {
   try {
