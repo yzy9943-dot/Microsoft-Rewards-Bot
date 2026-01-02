@@ -7,7 +7,7 @@ import { logError } from '../util/notifications/Logger'
 
 type DismissButton = { selector: string; label: string; isXPath?: boolean }
 
-export default class BrowserUtil {
+export class BrowserUtil {
     private bot: MicrosoftRewardsBot
 
     private static readonly DISMISS_BUTTONS: readonly DismissButton[] = [

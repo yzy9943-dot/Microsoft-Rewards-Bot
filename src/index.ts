@@ -7,15 +7,15 @@ import fs from 'fs'
 import path from 'path'
 import type { Page } from 'playwright'
 import { createInterface } from 'readline'
-import BrowserFunc from './browser/BrowserFunc'
-import BrowserUtil from './browser/BrowserUtil'
-import Humanizer from './util/browser/Humanizer'
+import { BrowserFunc } from './browser/BrowserFunc'
+import { BrowserUtil } from './browser/BrowserUtil'
+import { Humanizer } from './util/browser/Humanizer'
 import { getMemoryMonitor, stopMemoryMonitor } from './util/core/MemoryMonitor'
 import { formatDetailedError, normalizeRecoveryEmail, shortErrorMessage, Util } from './util/core/Utils'
-import Axios from './util/network/Axios'
+import { AxiosClient } from './util/network/Axios'
 import { QueryDiversityEngine } from './util/network/QueryDiversityEngine'
 import { log, stopWebhookCleanup } from './util/notifications/Logger'
-import JobState from './util/state/JobState'
+import { JobState } from './util/state/JobState'
 import { loadAccounts, loadConfig } from './util/state/Load'
 import { MobileRetryTracker } from './util/state/MobileRetryTracker'
 import { detectBanReason } from './util/validation/BanDetector'
@@ -68,7 +68,7 @@ export class MicrosoftRewardsBot {
     private accountJobState?: JobState
     private accountRunCounts: Map<string, number> = new Map()
 
-    public axios!: Axios
+    public axios!: AxiosClient
 
     constructor(isMobile: boolean) {
         this.isMobile = isMobile
@@ -525,7 +525,7 @@ export class MicrosoftRewardsBot {
             const errors: string[] = []
             const banned = { status: false, reason: '' }
 
-            this.axios = new Axios(account.proxy)
+            this.axios = new AxiosClient(account.proxy)
             this.queryEngine = this.buildQueryEngine()
             const verbose = process.env.DEBUG_REWARDS_VERBOSE === '1'
 

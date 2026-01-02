@@ -27,8 +27,7 @@ export async function createBrowserInstance(
     email: string
 ): Promise<BrowserContext> {
     const browserModule = await import('../../browser/Browser')
-    const Browser = browserModule.default
-    const browserInstance = new Browser(bot)
+    const browserInstance = new browserModule.Browser(bot)
     return await browserInstance.createBrowser(proxy, email)
 }
 

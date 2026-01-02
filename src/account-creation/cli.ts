@@ -1,4 +1,4 @@
-import Browser from '../browser/Browser'
+import { Browser } from '../browser/Browser'
 import { MicrosoftRewardsBot } from '../index'
 import type { AccountProxy } from '../interface/Account'
 import { log } from '../util/notifications/Logger'

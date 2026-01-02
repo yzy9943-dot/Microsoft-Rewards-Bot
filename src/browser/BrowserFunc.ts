@@ -13,7 +13,7 @@ import { extractBalancedObject } from '../util/core/Utils'
 import { saveSessionData } from '../util/state/Load'
 
 
-export default class BrowserFunc {
+export class BrowserFunc {
     private bot: MicrosoftRewardsBot
 
     constructor(bot: MicrosoftRewardsBot) {

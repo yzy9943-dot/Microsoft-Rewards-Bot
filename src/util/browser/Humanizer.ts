@@ -363,5 +363,3 @@ export class Humanizer {
     this.actionCount = 0
   }
 }
-
-export default Humanizer

@@ -108,5 +108,3 @@ export class JobState {
     return this.baseDir
   }
 }
-
-export default JobState

@@ -9,7 +9,7 @@ import { Retry } from '../util/core/Retry'
 import { AdaptiveThrottler } from '../util/notifications/AdaptiveThrottler'
 import { logError } from '../util/notifications/Logger'
 import { getActivityStatsTracker } from '../util/state/ActivityStatsTracker'
-import JobState from '../util/state/JobState'
+import { JobState } from '../util/state/JobState'
 
 // Selector patterns (extracted to avoid magic strings)
 const ACTIVITY_SELECTORS = {

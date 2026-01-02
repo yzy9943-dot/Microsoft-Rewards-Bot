@@ -4,7 +4,7 @@ import { HttpsProxyAgent } from 'https-proxy-agent'
 import { SocksProxyAgent } from 'socks-proxy-agent'
 import { AccountProxy } from '../../interface/Account'
 
-class AxiosClient {
+export class AxiosClient {
     private instance: AxiosInstance
     private account: AccountProxy
 
@@ -153,5 +153,3 @@ class AxiosClient {
         return new Promise(resolve => setTimeout(resolve, ms))
     }
 }
-
-export default AxiosClient

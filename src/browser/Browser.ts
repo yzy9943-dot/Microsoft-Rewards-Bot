@@ -9,7 +9,7 @@ import { getAntiDetectionScript, getTimezoneScript } from '../util/security/Anti
 import { loadSessionData, saveFingerprintData } from '../util/state/Load'
 import { logFingerprintValidation, validateFingerprintConsistency } from '../util/validation/FingerprintValidator'
 
-class Browser {
+export class Browser {
     private bot: MicrosoftRewardsBot
 
     constructor(bot: MicrosoftRewardsBot) {
@@ -282,5 +282,3 @@ class Browser {
         return updatedFingerPrintData
     }
 }
-
-export default Browser
