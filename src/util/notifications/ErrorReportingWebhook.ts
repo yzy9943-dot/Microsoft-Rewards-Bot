@@ -28,7 +28,12 @@ const SANITIZE_PATTERNS: Array<[RegExp, string]> = [
     [/[A-Za-z]:\\(?:[^\\/:*?"<>|\r\n]+\\)*[^\\/:*?"<>|\r\n]*/g, '[PATH_REDACTED]'],
     [/\/(?:home|Users)\/[^/\s]+(?:\/[^/\s]+)*/g, '[PATH_REDACTED]'],
     [/\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g, '[IP_REDACTED]'],
-    [/\b[A-Za-z0-9_-]{20,}\b/g, '[TOKEN_REDACTED]']
+    [/\b[A-Za-z0-9_-]{20,}\b/g, '[TOKEN_REDACTED]'],
+    // Discord mention sanitization (prevent @everyone, @here abuse)
+    [/@(everyone|here)/gi, '@\u200b$1'], // Zero-width space breaks mentions
+    [/<@!?(\d+)>/g, '@user'], // User mentions
+    [/<@&(\d+)>/g, '@role'], // Role mentions
+    [/<#(\d+)>/g, '#channel'] // Channel mentions
 ]
 
 function sanitizeSensitiveText(text: string): string {

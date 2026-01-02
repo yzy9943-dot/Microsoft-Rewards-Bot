@@ -22,6 +22,23 @@ function isRateLimited(ip) {
     return false
 }
 
+// Sanitize text to prevent Discord mention abuse
+function sanitizeDiscordText(text) {
+    if (!text) return ''
+    
+    return String(text)
+        // Remove @everyone and @here mentions
+        .replace(/@(everyone|here)/gi, '@\u200b$1')
+        // Remove user mentions <@123456>
+        .replace(/<@!?(\d+)>/g, '@user')
+        // Remove role mentions <@&123456>
+        .replace(/<@&(\d+)>/g, '@role')
+        // Remove channel mentions <#123456>
+        .replace(/<#(\d+)>/g, '#channel')
+        // Limit length
+        .slice(0, 2000)
+}
+
 // Vercel serverless handler
 module.exports = async function handler(req, res) {
     // CORS headers
@@ -59,22 +76,29 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ error: 'Invalid payload: missing error field' })
         }
 
+        // Sanitize all text fields to prevent Discord mention abuse
+        const sanitizedError = sanitizeDiscordText(payload.error)
+        const sanitizedStack = payload.stack ? sanitizeDiscordText(payload.stack) : null
+        const sanitizedVersion = sanitizeDiscordText(payload.context?.version || 'unknown')
+        const sanitizedPlatform = sanitizeDiscordText(payload.context?.platform || 'unknown')
+        const sanitizedNode = sanitizeDiscordText(payload.context?.nodeVersion || 'unknown')
+
         // Build Discord embed
         const embed = {
             title: '🔴 Bot Error Report',
-            description: `\`\`\`\n${String(payload.error).slice(0, 1900)}\n\`\`\``,
+            description: `\`\`\`\n${sanitizedError.slice(0, 1900)}\n\`\`\``,
             color: 0xdc143c,
             fields: [
-                { name: 'Version', value: String(payload.context?.version || 'unknown'), inline: true },
-                { name: 'Platform', value: String(payload.context?.platform || 'unknown'), inline: true },
-                { name: 'Node', value: String(payload.context?.nodeVersion || 'unknown'), inline: true }
+                { name: 'Version', value: sanitizedVersion, inline: true },
+                { name: 'Platform', value: sanitizedPlatform, inline: true },
+                { name: 'Node', value: sanitizedNode, inline: true }
             ],
             timestamp: new Date().toISOString(),
             footer: { text: 'Community Error Reporting' }
         }
 
-        if (payload.stack) {
-            const stackLines = String(payload.stack).split('\n').slice(0, 15).join('\n')
+        if (sanitizedStack) {
+            const stackLines = sanitizedStack.split('\n').slice(0, 15).join('\n')
             embed.fields.push({
                 name: 'Stack Trace',
                 value: `\`\`\`\n${stackLines.slice(0, 1000)}\n\`\`\``,
