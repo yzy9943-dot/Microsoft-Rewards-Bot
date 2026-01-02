@@ -197,6 +197,13 @@ export interface ConfigDashboard {
     host?: string; // bind address (default: 127.0.0.1)
 }
 
+export interface ConfigErrorReporting {
+    enabled?: boolean; // master toggle for error reporting
+    apiUrl?: string; // Vercel API endpoint URL (default: official endpoint)
+    secret?: string; // optional secret for bypassing rate limits
+    webhooks?: string[]; // DEPRECATED: legacy Discord webhooks (use apiUrl instead)
+}
+
 export interface ConfigScheduling {
     enabled?: boolean; // Enable automatic daily scheduling
     time?: string;     // Daily execution time in 24h format (HH:MM) - e.g., "09:00" for 9 AM (RECOMMENDED)

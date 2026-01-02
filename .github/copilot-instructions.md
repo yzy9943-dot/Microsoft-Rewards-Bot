@@ -1141,11 +1141,59 @@ private combinedDeduplication(queries: string[], threshold = 0.65): string[] {
 
 **Features:** Discord embed format, dual webhook support (deduplicated URLs), retry logic (3 attempts, exponential backoff: 1s, 2s, 4s), optional NTFY integration, avatar + username customization
 
+### Error Reporting System (Vercel Serverless) (`api/report-error.ts`, `src/util/notifications/ErrorReportingWebhook.ts`)
+
+**MAJOR REDESIGN (2025-01-02):** Complete rewrite from Discord webhooks → Vercel Serverless Functions
+
+**OLD SYSTEM (Pre-2025) - DEPRECATED:**
+- ❌ Hardcoded Discord webhooks (4 redundancy URLs in base64)
+- ❌ AES-256-GCM obfuscation with `ERROR_WEBHOOK_KEY`
+- ❌ Webhook rotation logic (`disabled-webhooks.json` tracking)
+- ❌ Users could disable webhooks (config control)
+- ❌ ~600 lines of complex code
+- ❌ Disabled since 2024-12-26 due to vulnerabilities
+
+**NEW SYSTEM (2025+) - ACTIVE:**
+- ✅ Vercel Serverless Function: `api/report-error.ts`
+- ✅ Webhook URL in Vercel environment variables (NEVER in code)
+- ✅ Server-side rate limiting (10 req/min/IP, bypass with `X-Rate-Limit-Secret`)
+- ✅ ~300 lines of clean code (50% reduction)
+- ✅ Free Vercel tier (100,000 requests/day)
+- ✅ Maintainer-controlled (users can opt-out but not break system)
+
+**Architecture:**
+```
+Bot → POST /api/report-error → Vercel Function → Discord Webhook
+         (sanitized payload)    (env vars)         (maintainer's server)
+```
+
+**Key Features:**
+- **Sanitization:** Redacts emails, paths, IPs, tokens (SANITIZE_PATTERNS)
+- **Filtering:** Skips user config errors, expected errors (shouldReportError)
+- **Payload:** Error message, stack trace (15 lines), version, platform, botMode
+- **Config:** `errorReporting.enabled`, `apiUrl`, `secret` (optional bypass)
+
+**Files:**
+- `api/report-error.ts` - Vercel serverless function (TypeScript)
+- `vercel.json` - Vercel deployment config
+- `api/README.md` - Setup instructions for maintainers
+- `docs/error-reporting-vercel.md` - Full documentation
+- `src/interface/Config.ts` - `ConfigErrorReporting` interface
+
+**Setup (Maintainers):**
+1. Add `DISCORD_ERROR_WEBHOOK_URL` to Vercel env vars
+2. Optional: Add `RATE_LIMIT_SECRET` for trusted clients
+3. Deploy: `git push` or `vercel --prod`
+4. Test: `curl -X POST https://rewards-bot-eight.vercel.app/api/report-error`
+
+**Migration Guide:**
+- Old `errorReporting.webhooks[]` config field DEPRECATED (still supported as fallback)
+- Old `sessions/disabled-webhooks.json` file NO LONGER USED
+- Bot automatically uses new API (no user action required)
+
 ---
 
-**Last Updated:** 2025-11-09  
-**Version:** See `package.json` for current version  
-**Maintainer:** LightZirconite + Community Contributors
+**Last Updated:** 2025-01-02  
 
 ---
 
