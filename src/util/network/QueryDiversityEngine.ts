@@ -4,7 +4,7 @@ import { Util } from '../core/Utils'
 type HttpClient = Pick<typeof axios, 'request'> | { request: (config: AxiosRequestConfig) => Promise<AxiosResponse> }
 
 export interface QueryDiversityConfig {
-  sources: Array<'google-trends' | 'reddit' | 'news' | 'wikipedia' | 'local-fallback'>
+  sources: Array<'google-trends' | 'reddit' | 'news' | 'wikipedia' | 'local-fallback' | 'baidu-hot' | 'toutiao-hot' | 'weibo-hot' | 'douyin-hot' | 'tianapi-networkhot' | 'tianapi-wxhottopic'>
   deduplicate: boolean
   mixStrategies: boolean
   maxQueriesPerSource: number
@@ -129,6 +129,24 @@ export class QueryDiversityEngine {
       case 'wikipedia':
         queries = await this.fetchWikipedia()
         break
+      case 'baidu-hot':
+        queries = await this.fetchBaiduHot()
+        break
+      case 'toutiao-hot':
+        queries = await this.fetchToutiaoHot()
+        break
+      case 'weibo-hot':
+        queries = await this.fetchWeiboHot()
+        break
+      case 'douyin-hot':
+        queries = await this.fetchDouyinHot()
+        break
+      case 'tianapi-networkhot':
+        queries = await this.fetchTianapiNetworkHot()
+        break
+      case 'tianapi-wxhottopic':
+        queries = await this.fetchTianapiWxHotTopic()
+        break
       case 'local-fallback':
         queries = this.getLocalFallback(20)
         break
@@ -239,18 +257,132 @@ export class QueryDiversityEngine {
   }
 
   /**
-   * Fetch from Wikipedia (featured articles / trending topics)
-   */
-  private async fetchWikipedia(): Promise<string[]> {
-    try {
-      const data = await this.fetchHttp('https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=15&format=json')
-      const parsed = JSON.parse(data)
-      const pages = parsed.query?.random || []
-      return pages.map((p: { title?: string }) => p.title).filter((t: string | undefined) => t && t.length > 3)
-    } catch {
-      return []
+     * Fetch from Wikipedia (featured articles / trending topics)
+     */
+    private async fetchWikipedia(): Promise<string[]> {
+        try {
+            const data = await this.fetchHttp('https://en.wikipedia.org/w/api.php?action=query&list=random&rnnamespace=0&rnlimit=15&format=json')
+            const parsed = JSON.parse(data)
+            const pages = parsed.query?.random || []
+            return pages.map((p: { title?: string }) => p.title).filter((t: string | undefined) => t && t.length > 3)
+        } catch {
+            return []
+        }
     }
-  }
+
+    /**
+     * Fetch from Baidu Hot Trends (Chinese trending searches)
+     */
+    private async fetchBaiduHot(): Promise<string[]> {
+        try {
+            const data = await this.fetchHttp('https://api.gmya.net/Api/BaiduHot?format=json&appkey=3e132ef05b3633443f365dd824e135f0')
+            const parsed = JSON.parse(data)
+            
+            if (parsed.code === 200 && Array.isArray(parsed.data)) {
+                return parsed.data.map((item: { title?: string }) => item.title).filter((t: string | undefined) => t && t.length > 5)
+            }
+            return []
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error)
+            this.log('QUERY-DIVERSITY', `Failed to fetch Baidu Hot Trends: ${errorMsg}`, 'warn')
+            return []
+        }
+    }
+
+    /**
+     * Fetch from Toutiao Hot Trends (Chinese trending searches)
+     */
+    private async fetchToutiaoHot(): Promise<string[]> {
+        try {
+            const data = await this.fetchHttp('https://api.gmya.net/Api/TouTiaoHot?format=json&appkey=3e132ef05b3633443f365dd824e135f0')
+            const parsed = JSON.parse(data)
+            
+            if (parsed.code === 200 && Array.isArray(parsed.data)) {
+                return parsed.data.map((item: { title?: string }) => item.title).filter((t: string | undefined) => t && t.length > 5)
+            }
+            return []
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error)
+            this.log('QUERY-DIVERSITY', `Failed to fetch Toutiao Hot Trends: ${errorMsg}`, 'warn')
+            return []
+        }
+    }
+
+    /**
+     * Fetch from Weibo Hot Trends (Chinese social media trending searches)
+     */
+    private async fetchWeiboHot(): Promise<string[]> {
+        try {
+            const data = await this.fetchHttp('https://api.gmya.net/Api/WeiBoHot?format=json&appkey=3e132ef05b3633443f365dd824e135f0')
+            const parsed = JSON.parse(data)
+            
+            if (parsed.code === 200 && Array.isArray(parsed.data)) {
+                return parsed.data.map((item: { title?: string }) => item.title).filter((t: string | undefined) => t && t.length > 5)
+            }
+            return []
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error)
+            this.log('QUERY-DIVERSITY', `Failed to fetch Weibo Hot Trends: ${errorMsg}`, 'warn')
+            return []
+        }
+    }
+
+    /**
+     * Fetch from Douyin Hot Trends (Chinese short video trending searches)
+     */
+    private async fetchDouyinHot(): Promise<string[]> {
+        try {
+            const data = await this.fetchHttp('https://api.gmya.net/Api/DouYinHot?format=json&appkey=3e132ef05b3633443f365dd824e135f0')
+            const parsed = JSON.parse(data)
+            
+            if (parsed.code === 200 && Array.isArray(parsed.data)) {
+                return parsed.data.map((item: { title?: string }) => item.title).filter((t: string | undefined) => t && t.length > 5)
+            }
+            return []
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error)
+            this.log('QUERY-DIVERSITY', `Failed to fetch Douyin Hot Trends: ${errorMsg}`, 'warn')
+            return []
+        }
+    }
+
+    /**
+     * Fetch from TianAPI Network Hot Trends (Chinese network hot searches)
+     */
+    private async fetchTianapiNetworkHot(): Promise<string[]> {
+        try {
+            const data = await this.fetchHttp('https://apis.tianapi.com/networkhot/index?key=5c82ff8f8e453e1c33c0000d4346d79e')
+            const parsed = JSON.parse(data)
+            
+            if (parsed.code === 200 && Array.isArray(parsed.result?.list)) {
+                return parsed.result.list.map((item: { title?: string }) => item.title).filter((t: string | undefined) => t && t.length > 5)
+            }
+            return []
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error)
+            this.log('QUERY-DIVERSITY', `Failed to fetch TianAPI Network Hot Trends: ${errorMsg}`, 'warn')
+            return []
+        }
+    }
+
+    /**
+     * Fetch from TianAPI WeChat Hot Topic (Chinese WeChat hot searches)
+     */
+    private async fetchTianapiWxHotTopic(): Promise<string[]> {
+        try {
+            const data = await this.fetchHttp('https://apis.tianapi.com/wxhottopic/index?key=5c82ff8f8e453e1c33c0000d4346d79e')
+            const parsed = JSON.parse(data)
+            
+            if (parsed.code === 200 && Array.isArray(parsed.result?.list)) {
+                return parsed.result.list.map((item: { title?: string }) => item.title).filter((t: string | undefined) => t && t.length > 5)
+            }
+            return []
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error)
+            this.log('QUERY-DIVERSITY', `Failed to fetch TianAPI WeChat Hot Topic: ${errorMsg}`, 'warn')
+            return []
+        }
+    }
 
   /**
    * Local fallback queries (curated list)
